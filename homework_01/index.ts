@@ -107,8 +107,7 @@ class Student {
   }
 
   getPerformanceRating(): number {
-    if (this.grades.length === 0)
-      return 0;
+    if (this.grades.length === 0) return 0;
 
     const gradeValues = Object.values(this.grades);
 

@@ -42,7 +42,7 @@ interface INumericValue {
   [key: string]: number;
 }
 
-function checkNunerickValues(obj: INumericValue): boolean {
+function checkNumericValues(obj: INumericValue): boolean {
   for (let key in obj) {
     if (typeof obj[key] !== 'number') {
       return false;

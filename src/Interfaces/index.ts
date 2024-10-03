@@ -23,9 +23,9 @@ class Calculator implements ICalculator {
   }
 }
 
-type Opetation = 'add' | 'subtract' | 'multiply' | 'divide';
+type Operation = 'add' | 'subtract' | 'multiply' | 'divide';
 
-function calculate(calculator: ICalculator, operation: Opetation, a: number, b: number): number {
+function calculate(calculator: ICalculator, operation: Operation, a: number, b: number): number {
   switch (operation) {
     case 'add':
       return calculator.add(a, b);
@@ -47,16 +47,16 @@ interface IBook {
   publishedYear: number;
 }
 
-interface IAutor {
+interface IAuthor {
   id: number;
   name: string;
   birthYear: number;
 }
 interface IBookService {
   getBookById(id: number): IBook | undefined;
-  getAuthorById(id: number): IAutor | undefined;
+  getAuthorById(id: number): IAuthor | undefined;
   getAllBooks(): IBook[];
-  getAllAuthors(): IAutor[];
+  getAllAuthors(): IAuthor[];
 }
 const books: IBook[] = [
   { id: 1, title: 'My Brilliant Friend', authorId: 1, publishedYear: 2018 },
@@ -64,7 +64,7 @@ const books: IBook[] = [
   { id: 3, title: 'The Gates of Europe', authorId: 3, publishedYear: 2021 },
 ];
 
-const authors: IAutor[] = [
+const authors: IAuthor[] = [
   { id: 1, name: 'Elena Ferante', birthYear: 1943 },
   { id: 2, name: 'Alan Rickman', birthYear: 1946 },
   { id: 3, name: 'Serhii Plokhiy', birthYear: 1957 },

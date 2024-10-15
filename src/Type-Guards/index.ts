@@ -2,123 +2,137 @@ interface IBudget {
   debit: number;
   credit: number;
 }
+const ZERO_BUDGET_VALUE = 0;
+enum EmployeeStatusEnum {
+  Active = 'active',
+  Inactive = 'inactive',
+  UnpaidLeave = 'unpaid_leave',
+}
 
 interface IDepartmentInfo {
   name: string;
   domain: string;
 }
-
-interface IDepartment {
-  name: string;
-  domain: string;
-  employees: IEmployee[];
-  budget: IBudget;
-  culculateBalance(): number;
-  addEmployee(employee: IEmployee): void;
-  removeEmployee(employeeId: number): void;
-  promoteToEmployee(preHired: IPreHiredEmployee): void;
+interface IPaymentInfo {
+  iban: string;
+  code: number;
 }
 
-interface IEmployee {
-  id: number;
-  firstName: string;
-  lastName: string;
-  paymentInfo: {
-    bankAccountNumber: string;
-    salary: number;
+class Company {
+  public name: string = 'Company Name';
+  public departments: Department[] = [];
+  public preHiredEmployee: PreHiredEmployee[] = [];
+  public allEmployees: (Employee | PreHiredEmployee)[] = [];
+
+  get staff(): (PreHiredEmployee | Employee)[] {
+    return [...this.departments.flatMap(item => item.employees), ...this.preHiredEmployee];
+  }
+}
+
+class Department {
+  public name: string;
+  public domain: string;
+  public employees: Employee[] = [];
+  public budget: IBudget = {
+    debit: ZERO_BUDGET_VALUE,
+    credit: ZERO_BUDGET_VALUE,
   };
-  status: 'active' | 'inactive' | 'unpaid_leave';
-  department: IDepartmentInfo;
-}
+  constructor(name: string, domain: string, employees: Employee[]) {
+    this.name = name;
+    this.domain = domain;
+    this.employees = employees;
+  }
 
-interface IPreHiredEmployee {
+  get balance(): number {
+    return this.budget.debit - this.budget.credit;
+  }
+
+  public addEmployee(someEmployee: Employee | PreHiredEmployee, paymentInfo: IPaymentInfo): void {
+    if (isEmployee(someEmployee)) {
+      someEmployee.department = this;
+      this.employees.push(someEmployee);
+    } else {
+      const newEmployee = new Employee(someEmployee.firstName, someEmployee.lastName, someEmployee.salary, paymentInfo);
+      this.employees.push(newEmployee);
+    }
+    this.budget.credit -= someEmployee.salary;
+  }
+  public removeEmployee(employeeLastName: string, employeeFirstName: string): void {
+    const employeeToRemove = employeeLastName + employeeFirstName;
+    this.employees = this.employees.filter(employee => employee.lastName + employee.firstName !== employeeToRemove);
+  }
+}
+class PreHiredEmployee {
+  constructor(
+    public firstName: string,
+    public lastName: string,
+    public salary: number,
+    public bankAccountNumber: string
+  ) {}
+}
+class Employee {
   firstName: string;
   lastName: string;
+  paymentInfo: IPaymentInfo;
   salary: number;
-  bankAccountNumber: string;
-}
-
-interface ICompany {
-  name: string;
-  departments: Department[];
-  preHiredEmployee: IPreHiredEmployee[];
-  allEmployees: IEmployee[];
-}
-
-class Company implements ICompany {
-  constructor(
-    public name: string,
-    public departments: Department[],
-    public preHiredEmployee: IPreHiredEmployee[],
-    public allEmployees: IEmployee[]
-  ) {}
-}
-
-class Department implements IDepartment {
-  constructor(
-    public name: string,
-    public domain: string,
-    public employees: IEmployee[],
-    public budget: IBudget
-  ) {}
-  public culculateBalance(): number {
-    return this.budget.credit - this.budget.debit;
-  }
-  public addEmployee(employee: IEmployee): void {
-    this.employees.push(employee);
-    this.budget.debit += employee.paymentInfo.salary;
-  }
-  public removeEmployee(employeeId: number): void {
-    this.employees = this.employees.filter(employee => employee.id !== employeeId);
-  }
-  public promoteToEmployee(preHired: IPreHiredEmployee): void {
-    const newEmployee: IEmployee = {
-      id: this.employees.length + 1,
-      firstName: preHired.firstName,
-      lastName: preHired.lastName,
-      paymentInfo: {
-        bankAccountNumber: preHired.bankAccountNumber,
-        salary: preHired.salary,
-      },
-      status: 'active',
-      department: { name: this.name, domain: this.domain },
-    };
-    this.employees.push(newEmployee);
-    this.budget.debit += preHired.salary;
+  status: EmployeeStatusEnum = EmployeeStatusEnum.UnpaidLeave;
+  department: Department | null = null;
+  constructor(firstName: string, lastName: string, salary: number, paymentInfo: IPaymentInfo) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.salary = salary;
+    this.paymentInfo = paymentInfo;
   }
 }
 
 class AccountingDepartment extends Department {
-  constructor(
-    public name: string,
-    public domain: string,
-    public employees: IEmployee[],
-    public budget: IBudget,
-    public balance: number
-  ) {
-    super(name, domain, employees, budget);
-    this.balance = balance;
+  salaryBalance: (Department | Employee | PreHiredEmployee)[] = [];
+
+  constructor(name: string, domain: string, employees: Employee[]) {
+    super(name, domain, employees);
   }
 
-  public takeOnBalance(entity: IEmployee | IDepartment): void {
-    if ('paymentInfo' in entity) {
-      this.balance += entity.paymentInfo.salary;
+  public takeOnBalance(entity: Department | Employee | PreHiredEmployee): void {
+    if (isDepartment(entity)) {
+      this.salaryBalance.push(...entity.employees);
     } else {
-      this.balance += entity.culculateBalance();
+      this.salaryBalance.push(entity);
     }
   }
 
-  public removeFromBalance(entity: IEmployee | IDepartment): void {
-    if ('paymentInfo' in entity) {
-      this.balance -= entity.paymentInfo.salary;
+  public removeFromBalance(entity: Employee | Department): void {
+    if (isEmployee(entity)) {
+      this.employees = this.employees.filter(e => e !== entity);
+      this.budget.credit += entity.salary;
     }
+    // if (isDepartment(entity)) {
+    //   this.salaryBalance += entity.balance;// could you explain how can i do in this case , please?
+    // }
   }
   public paySalaries(): void {
-    this.employees.forEach(employee => {
-      if (employee.status === 'active') {
-        this.balance -= employee.paymentInfo.salary;
+    for (const entity of this.salaryBalance) {
+      if (isPreHiredEmployee(entity)) {
+        this.externalPayment(entity);
+      } else if (isEmployee(entity)) {
+        if (entity.status !== EmployeeStatusEnum.Active) continue;
+        this.internalPayment(entity);
       }
-    });
+    }
+  }
+  internalPayment(employee: Employee): void {
+    console.log(`${employee.firstName} ${employee.lastName} - Internal Payment`);
+  }
+  externalPayment(preHired: PreHiredEmployee): void {
+    console.log(`${preHired.firstName} ${preHired.lastName} - Internal Payment`);
   }
 }
 
+function isPreHiredEmployee(entity: unknown): entity is PreHiredEmployee {
+  return entity instanceof PreHiredEmployee;
+}
+function isEmployee(entity: unknown): entity is Employee {
+  return entity instanceof Employee;
+}
+function isDepartment(entity: unknown): entity is Department {
+  return entity instanceof Department;
+}

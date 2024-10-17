@@ -106,7 +106,7 @@ class AccountingDepartment extends Department {
       this.budget.credit += entity.salary;
     }
     // if (isDepartment(entity)) {
-    //   this.salaryBalance += entity.balance;// could you explain how can i do in this case , please?
+    //   this.salaryBalance += entity.balance;
     // }
   }
   public paySalaries(): void {

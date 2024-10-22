@@ -14,11 +14,11 @@ interface NeastedObject {
     }
 }
 const example1: DeepReadonly<NeastedObject> = {
-        a: 1,
-        b: {
-          c: "hello",
-          d: {
-            e: true
+  a: 1,
+    b: {
+      c: "hello",
+        d: {
+          e: true
         }
     }
 }
@@ -61,12 +61,7 @@ interface IUser {
 //  обʼєкт на обʼєкт де кожне value є дескриптором.
 
 type ObjectToPropertyDescriptor<T> = {
-  [K in keyof T]: {
-      configurable: boolean;
-      enumerable: boolean;
-      writable: boolean;
-      value: T[K]
-  }
+  [K in keyof T]: PropertyDescriptor
 }
 interface IExample {
   name: string;
